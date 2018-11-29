@@ -554,7 +554,13 @@ static bool plugin_rpcmethod_add(struct plugin *plugin, const char *buffer,
 	cmd->deprecated = false;
 	cmd->dispatch = plugin_rpcmethod_dispatch;
 	tal_add_destructor2(cmd, plugin_rpcmethod_destroy, plugin->plugins->rpc);
-	jsonrpc_command_add(plugin->plugins->rpc, cmd);
+	if (!jsonrpc_command_add(plugin->plugins->rpc, cmd)) {
+		log_broken(plugin->log,
+			   "Could not register method \"%s\", a method with "
+			   "that name is already registered",
+			   cmd->name);
+		return false;
+	}
 	*tal_arr_expand(&plugin->methods) = cmd->name;
 	return true;
 }
@@ -563,7 +569,7 @@ static bool plugin_rpcmethods_add(const struct plugin_request *req)
 {
 	const char *buffer = req->plugin->buffer;
 	const jsmntok_t *cur, *methods;
-	bool ok = true;
+
 	/* This is the parent for all elements in the "options" array */
 	int methpos;
 
@@ -580,9 +586,9 @@ static bool plugin_rpcmethods_add(const struct plugin_request *req)
 	}
 
 	for (cur = methods + 1; cur->parent == methpos; cur = json_next(cur))
-		ok &= plugin_rpcmethod_add(req->plugin, buffer, cur);
-
-	return ok;
+		if (!plugin_rpcmethod_add(req->plugin, buffer, cur))
+			return false;
+	return true;
 }
 
 /**
@@ -602,8 +608,8 @@ static void plugin_manifest_cb(const struct plugin_request *req, struct plugin *
 		return;
 	}
 
-	plugin_opts_add(req);
-	plugin_rpcmethods_add(req);
+	if (!plugin_opts_add(req) || !plugin_rpcmethods_add(req))
+		plugin_kill(plugin, "Failed to register options or methods");
 }
 
 void plugins_init(struct plugins *plugins)
