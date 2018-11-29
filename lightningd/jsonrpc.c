@@ -735,8 +735,7 @@ bool jsonrpc_command_add(struct jsonrpc *rpc, struct json_command *command)
 		    streq(rpc->commands[i]->name, command->name))
 			return false;
 
-	tal_resize(&rpc->commands, count + 1);
-	rpc->commands[count] = command;
+	*tal_arr_expand(&rpc->commands) = command;
 	return true;
 }
 
