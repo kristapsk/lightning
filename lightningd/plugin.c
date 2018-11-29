@@ -143,6 +143,7 @@ static void PRINTF_FMT(2,3) plugin_kill(struct plugin *plugin, char *fmt, ...)
 	plugin->stop = true;
 	io_wake(plugin);
 	kill(plugin->pid, SIGKILL);
+	list_del(&plugin->list);
 	tal_free(plugin);
 }
 
