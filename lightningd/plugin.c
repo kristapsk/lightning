@@ -492,11 +492,12 @@ static void plugin_rpcmethod_dispatch(struct command *cmd, const char *buffer,
 		for (size_t i=0; i<tal_count(plugin->methods); i++) {
 			if (streq(request->method, plugin->methods[i])) {
 				request->plugin = plugin;
-				break;
+				goto found;
 			}
 		}
 	}
 
+found:
 	/* This should never happen, it'd mean that a plugin didn't
 	 * cleanup after dying */
 	assert(request->plugin);
