@@ -438,15 +438,8 @@ static void plugin_rpcmethod_cb(const struct plugin_request *req,
 	res = req->resulttok;
 	response = json_stream_success(rpc_req->cmd);
 
-	/* If this is a raw string result we'd be cropping the quotes from the
-	 * result, so add them back */
-	if (req->resulttok->type == JSMN_STRING)
-		json_add_member(response, NULL, "\"%.*s\"",
-				res->end - res->start,
-				req->response + res->start);
-	else
-		json_add_member(response, NULL, "%.*s", res->end - res->start,
-				req->response + res->start);
+	json_add_member(response, NULL, "%.*s", json_tok_len(res),
+			json_tok_contents(req->response, res));
 
 	command_success(rpc_req->cmd, response);
 	tal_free(rpc_req);
